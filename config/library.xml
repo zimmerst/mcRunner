@@ -1,0 +1,15 @@
+<library>
+  <global>
+    <tag workdir="blub"/>
+    <tag number_of_jobs="bla"/>
+    <tag number_of_running_jobs="keks"/>
+    <tag sleep_period="dumb"/>
+    <tag batch_system="lsf"/>
+  </global>
+  <job_summary>
+    <job name="test" done="1"/>
+  </job_summary>
+<jobs>
+  <job name="" dtype="" release="" memory="" cpu="" script=""/>
+</jobs>
+</library>

@@ -1,0 +1,10 @@
+global:
+    workdir=/tmp
+    number_of_jobs=1200
+    number_of_running_jobs=300
+    sleep_period=30 
+    batch_system=lsf
+job_summary:
+    - name="test" jobs_done=0
+jobs:
+    - name="" dtype="" release="" memory="" cpu="" script=""
