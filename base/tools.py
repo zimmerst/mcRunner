@@ -3,11 +3,10 @@ Created on Mar 25, 2016
 
 @author: zimmer
 """
-from DmpWorkflow.config.defaults import DAMPE_WORKFLOW_URL
 try:
     import logging
     import shutil
-    from DmpWorkflow.utils.shell import run
+    from mcRunner.base.shell import run
     from os import makedirs, environ, utime
     from os.path import exists, expandvars, dirname
     from sys import stdout
@@ -23,7 +22,6 @@ try:
     from xml.dom import minidom as xdom
     from hashlib import md5
     from psutil import AccessDenied, Process as psutil_proc
-    from flask import Response
     from json import dumps
 except ImportError as Error:
     print "could not find one or more packages, check prerequisites."
@@ -36,82 +34,6 @@ def datetime_to_js(dt):
     if not isinstance(dt,datetime):
         raise Exception("must be datetime object")
     return int(mktime(dt.timetuple())) * 1000.
-
-def updateJobStatus(**kwargs):
-    """ 
-        convenience method, wraps update status via request, thus can be used by 3rd party python applications
-        interaction happens via kwargs:
-        =========
-        t_id T_ID                   task ID
-        inst_id INST_ID             Instance ID
-        retry RETRY                 number of attempts being made to contact server
-        major_status MAJOR_STATUS   Major status
-        minor_status MINOR_STATUS   minor status
-        hostname HOSTNAME           hostname
-        batchId BATCHID             batchId
-        timeout                     timeout in seconds for server query
-
-        returns an S_OK dictionary with "result" (ok/nok) and "error" which defaults to None
-    """
-    from requests import post
-    my_dict = {}
-    for key in ['t_id','inst_id','retry','major_status','minor_status','hostname','batchId']:
-        val = kwargs.get(key,None)
-        if val is not None:
-            my_dict[key]=val
-    natts = my_dict.get("retry",3)
-    tout  = my_dict.get("timeout",30.)
-    if 'retry' in my_dict: my_dict.pop("retry")
-    if 'timeout' in my_dict: my_dict.pop("timeout")
-    res = None
-    counter = 0
-    while (natts >= counter) and (res is None):
-        try:
-            res = post("%s/jobstatus/" % DAMPE_WORKFLOW_URL, data={"args": dumps(my_dict)}, timeout=tout)
-            res.raise_for_status()
-        except Exception as err:
-            counter+=1
-            slt = 60*counter
-            print err
-            print '%i/%i: could not complete request, sleeping %i seconds and retrying again'%(counter, natts, slt)
-            sleep(slt)
-            res = None
-    if res is None and natts == counter:
-        return S_OK("nok",error="failed to connect to server %s"%DAMPE_WORKFLOW_URL)
-    else:
-        res = res.json()
-        if res.get("result", "nok") != "ok":
-            return S_OK("nok",error=res.get("error",""))
-        else:
-            return S_OK("ok")
-
-
-def dumpr(json_str):
-    """ convenience function to return a flask-Response object """
-    return Response(dumps(json_str),mimetype = 'application/json')
-
-def send_heartbeat(proc,version=None):
-    """ 
-        convenience function that sends a heart beat to DB
-        arguments: 
-          - proc: name of process, e.g. JobFetcher
-          - version: None (version of process)
-    """
-    from requests import post as r_post
-    if version is None:
-        from DmpWorkflow import version as SW_VERSION
-        version = SW_VERSION
-        
-    from socket import getfqdn as gethostname # use full domain name.
-    host = gethostname()
-    url = "%s/testDB/"%DAMPE_WORKFLOW_URL
-    dt = datetime.now()
-    res = r_post(url, data={"hostname":host, "timestamp":dt,"process":proc, "version":version})
-    res.raise_for_status()
-    res = res.json()
-    if res.get("result","nok") != "ok":
-        print res.get("error")
-    return
 
 def sortTimeStampList(my_list, timestamp='time', reverse=False):
     if not len(my_list):
